@@ -11,7 +11,7 @@ export default function UserProfilePage() {
   const { role } = useUserStore();
 
   useEffect(() => {
-    if (role && role !== "user") {
+    if (role === "leader") {
       router.replace("/leader/dashboard");
     }
   }, [role, router]);

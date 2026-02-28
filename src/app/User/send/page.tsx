@@ -1,16 +1,14 @@
-'use client'
+"use client";
 
-import { useSearchParams } from 'next/navigation'
-import MessageForm from '@/components/MessageForm'
+import { Suspense } from "react";
+import SendContent from "./SendContent";
 
+export const dynamic = "force-dynamic";
 
 export default function SendPage() {
-  const params = useSearchParams()
-  const leaderId = params.get('leader')
-
-  if (!leaderId) {
-    return <div className="p-6">No leader selected</div>
-  }
-
-  return <MessageForm leaderId={leaderId} />
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <SendContent />
+    </Suspense>
+  );
 }

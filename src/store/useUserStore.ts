@@ -1,26 +1,33 @@
-"use client";
-
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface UserState {
   telegramId: number | null;
+  role: "leader" | "member" | null;
+
   setTelegramId: (id: number) => void;
-  clearUser: () => void;
+  setRole: (role: "leader" | "member") => void;
+  resetUser: () => void;
 }
 
 export const useUserStore = create<UserState>()(
   persist(
     (set) => ({
       telegramId: null,
-      setTelegramId: (id) => {
-        console.log("Setting Telegram ID:", id);
-        set({ telegramId: id });
-      },
-      clearUser: () => set({ telegramId: null }),
+      role: null,
+
+      setTelegramId: (id) => set({ telegramId: id }),
+
+      setRole: (role) => set({ role }),
+
+      resetUser: () =>
+        set({
+          telegramId: null,
+          role: null,
+        }),
     }),
     {
-      name: "user-storage", // localStorage key
+      name: "user-storage",
     }
   )
 );
