@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
-import LeaderNavbar from "@/components/navigation/LeaderNavbarTemp";
+import LeaderNavbar from "@/components/navigation/LeaderNavbar";
 
 interface Message {
   id: string;
