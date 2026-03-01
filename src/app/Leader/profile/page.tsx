@@ -1,7 +1,7 @@
 "use client";
 
 import LeaderProfile from "@/components/profile/LeaderProfile";
-import LeaderNavbar from "@/components/navigation/LeaderNavbar";
+import LeaderNavbar from "@/components/navigation/LeaderNavbarTemp";
 
 export default function LeaderProfilePage() {
   return (

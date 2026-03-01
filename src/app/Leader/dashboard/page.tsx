@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUserStore } from "@/store/useUserStore";
-import LeaderNavbar from "@/components/navigation/LeaderNavbar";
+import LeaderNavbar from "@/components/navigation/LeaderNavbarTemp";
 
 export default function LeaderDashboardPage() {
   const router = useRouter();
