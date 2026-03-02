@@ -36,8 +36,8 @@ export default function UserHome() {
         }
 
         setMessage("✅ SUCCESS: " + JSON.stringify(data[0]));
-      } catch (err) {
-        setMessage("❌ Crash: " + err.message);
+      } catch (err: any) {
+        setMessage("❌ Crash: " + (err?.message || JSON.stringify(err)));
       }
     };
 
