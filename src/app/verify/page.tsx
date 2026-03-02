@@ -7,66 +7,57 @@ export default function VerifyPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const verifyUser = async () => {
+    const initTelegram = async () => {
+      const tg = (window as any).Telegram?.WebApp;
+
+      if (!tg || !tg.initDataUnsafe?.user) {
+        console.log("No Telegram user found");
+        return;
+      }
+
+      const user = tg.initDataUnsafe.user;
+
+      console.log("Telegram user:", user);
+
+      // 🔥 SAVE TELEGRAM ID
+      localStorage.setItem("telegram_id", user.id.toString());
+
       try {
-        const tg = (window as any).Telegram?.WebApp;
-
-        if (!tg) {
-          alert("This app must be opened inside Telegram.");
-          return;
-        }
-
-        tg.ready();
-
-        const telegramUser = tg.initDataUnsafe?.user;
-
-        if (!telegramUser) {
-          alert("No Telegram user found.");
-          return;
-        }
-
         const response = await fetch("/api/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: telegramUser.id,
-            username: telegramUser.username,
-            first_name: telegramUser.first_name,
-            last_name: telegramUser.last_name,
+            id: user.id.toString(),
+            username: user.username,
+            first_name: user.first_name,
+            last_name: user.last_name,
           }),
         });
 
-        const data = await response.json();
-
         if (!response.ok) {
-          console.error("Backend error:", data);
-          alert("Backend error: " + JSON.stringify(data));
-          return;
+          throw new Error("Login failed");
         }
 
+        const data = await response.json();
 
-        console.log("User verified:", data);
+        console.log("Login response:", data);
 
-        localStorage.setItem(
-          "telegram_id",
-          telegramUser.id.toString()
-        );
-
-        router.push("/User/home");
+        if (data.role === "User") {
+          router.push("/User/home");
+        } else if (data.role === "Leader") {
+          router.push("/Leader/home");
+        } else {
+          console.log("Unknown role");
+        }
       } catch (error) {
-        console.error("Verification error:", error);
-        alert("Verification failed.");
+        console.error("Login error:", error);
       }
     };
 
-    verifyUser();
+    initTelegram();
   }, [router]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      Verifying Telegram account...
-    </div>
-  );
+  return <p>Verifying...</p>;
 }
