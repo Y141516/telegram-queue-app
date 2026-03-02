@@ -1,21 +1,35 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function VerifyPage() {
+  const [info, setInfo] = useState("Checking...");
+
   useEffect(() => {
     const tg = window?.Telegram?.WebApp;
 
-    console.log("Telegram object:", tg);
-
-    if (tg) {
-      tg.expand();
-      console.log("initDataUnsafe:", tg.initDataUnsafe);
-      console.log("user:", tg.initDataUnsafe?.user);
-    } else {
-      console.log("Telegram NOT found");
+    if (!tg) {
+      setInfo("❌ Telegram object NOT found");
+      return;
     }
+
+    if (!tg.initDataUnsafe) {
+      setInfo("❌ initDataUnsafe missing");
+      return;
+    }
+
+    if (!tg.initDataUnsafe.user) {
+      setInfo("❌ User NOT found inside initDataUnsafe");
+      return;
+    }
+
+    setInfo("✅ User found: " + JSON.stringify(tg.initDataUnsafe.user));
   }, []);
 
-  return <p>Check console...</p>;
+  return (
+    <div style={{ padding: 20 }}>
+      <h2>Verify Debug</h2>
+      <p>{info}</p>
+    </div>
+  );
 }
