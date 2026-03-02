@@ -2,50 +2,68 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "../../lib/supabaseClient";
 
 export default function VerifyPage() {
   const router = useRouter();
 
   useEffect(() => {
     const verifyUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        const tg = (window as any).Telegram?.WebApp;
 
-      if (!user) return;
+        if (!tg) {
+          alert("This app must be opened inside Telegram.");
+          return;
+        }
 
-      const telegramId = user.user_metadata?.telegram_id;
+        tg.ready();
 
-      if (!telegramId) return;
+        const telegramUser = tg.initDataUnsafe?.user;
 
-      // ⚠️ IMPORTANT
-      // Replace this with your real group detection logic
-      // For now we assume group is already determined
-      const detectedGroupName = user.user_metadata?.group_name;
+        if (!telegramUser) {
+          alert("No Telegram user found.");
+          return;
+        }
 
-      if (!detectedGroupName) {
-        alert("User is not part of a verified group.");
-        return;
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: telegramUser.id,
+            username: telegramUser.username,
+            first_name: telegramUser.first_name,
+            last_name: telegramUser.last_name,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Login API failed");
+        }
+
+        const data = await response.json();
+
+        console.log("User verified:", data);
+
+        localStorage.setItem(
+          "telegram_id",
+          telegramUser.id.toString()
+        );
+
+        router.push("/User/home");
+      } catch (error) {
+        console.error("Verification error:", error);
+        alert("Verification failed.");
       }
-
-      // ✅ SAVE PROFILE WITH GROUP
-      await supabase.from("profiles").upsert({
-        id: user.id,
-        telegram_id: telegramId,
-        role: "user",
-        group_name: detectedGroupName,
-      });
-
-      router.push("/User/home");
     };
 
     verifyUser();
-  }, []);
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      Verifying telegram account...
+      Verifying Telegram account...
     </div>
   );
 }

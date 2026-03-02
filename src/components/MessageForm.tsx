@@ -1,78 +1,35 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import { useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
-interface Props {
-  leaderId: string
-}
-
-interface Leader {
-  id: string
-  name: string
-}
-
-export default function MessageForm({ leaderId }: Props) {
-  const [leader, setLeader] = useState<Leader | null>(null)
-  const [content, setContent] = useState('')
-  const [type, setType] = useState('question')
-  const [sending, setSending] = useState(false)
-
-  useEffect(() => {
-    const fetchLeader = async () => {
-      const { data } = await supabase
-        .from('leaders')
-        .select('*')
-        .eq('id', leaderId)
-        .single()
-
-      if (data) setLeader(data)
-    }
-
-    fetchLeader()
-  }, [leaderId])
+export default function MessageForm() {
+  const [content, setContent] = useState<string>("");
 
   const sendMessage = async () => {
-    if (!content.trim()) return
+    const telegramId = localStorage.getItem("telegram_id");
+    if (!telegramId) return;
 
-    setSending(true)
+    await supabase.from("messages").insert([
+      {
+        sender_telegram_id: telegramId,
+        content,
+      },
+    ]);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    await supabase.from('messages').insert({
-      user_id: user.id,
-      leader_id: leaderId,
-      content,
-      message_type: type,
-    })
-
-    setContent('')
-    setSending(false)
-  }
+    setContent("");
+  };
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl mb-4">
-        Sending to {leader?.name ?? 'Loading...'}
-      </h1>
-
-      <textarea
+    <div className="flex gap-2">
+      <input
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        className="w-full h-40 border p-3 rounded-lg"
+        className="border p-2 text-black"
       />
-
-      <button
-        onClick={sendMessage}
-        disabled={!content.trim() || sending}
-        className="bg-blue-600 text-white px-6 py-3 rounded-xl mt-4 disabled:opacity-50"
-      >
-        {sending ? 'Sending...' : 'Send'}
+      <button onClick={sendMessage} className="bg-blue-500 px-4">
+        Send
       </button>
     </div>
-  )
+  );
 }
