@@ -18,7 +18,7 @@ export default function LeaderProfile() {
       const { data } = await supabase
         .from("users")
         .select("*")
-        .eq("telegram_id", telegramId)
+        .eq("telegram_id", Number(telegramId))
         .single();
 
       if (data) {

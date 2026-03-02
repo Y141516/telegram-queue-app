@@ -25,7 +25,7 @@ export default function UserHome() {
         const { data, error } = await supabase
           .from("users")
           .select("*")
-          .eq("telegram_id", telegramId)
+          .eq("telegram_id",Number(telegramId))
           .maybeSingle();
 
         if (error) {
