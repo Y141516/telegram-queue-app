@@ -1,62 +1,50 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "../../../lib/supabaseClient";
 
 export default function UserHome() {
-  const [message, setMessage] = useState("Starting...");
+  const [message, setMessage] = useState("🔄 Verifying...");
 
   useEffect(() => {
-    const run = async () => {
-      const telegramId = localStorage.getItem("telegram_id");
-
-      if (!telegramId) {
-        setMessage("❌ No telegram_id in localStorage");
-        return;
-      }
-
-      setMessage("Step 1: Found telegram_id = " + telegramId);
-
+    const fetchUser = async () => {
       try {
-        setMessage("Step 2: Querying Supabase...");
+        // Get telegram id from localStorage
+        const telegramId = localStorage.getItem("telegram_id");
 
-        // 🔥 5 second timeout protection
-        const timeout = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Request timeout")), 5000)
-        );
-
-        const query = supabase
-          .from("users")
-          .select("*")
-          .eq("telegram_id", Number(telegramId));
-
-        const result = await Promise.race([query, timeout]) as any;
-
-        const { data, error } = result;
-
-        if (error) {
-          setMessage("❌ Supabase error: " + error.message);
+        if (!telegramId) {
+          setMessage("❌ No telegram_id found in localStorage");
           return;
         }
 
-        if (!data || data.length === 0) {
-          setMessage("❌ No matching user found in DB");
+        setMessage("🔄 Fetching user from API...");
+
+        // Call backend API (NOT Supabase directly)
+        const res = await fetch("/api/get-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ telegram_id: telegramId }),
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          setMessage("❌ " + (result.error || "Unknown error"));
           return;
         }
 
-        setMessage("✅ SUCCESS: " + JSON.stringify(data[0]));
+        setMessage("✅ SUCCESS:\n" + JSON.stringify(result.user, null, 2));
       } catch (err: any) {
-        setMessage("❌ Crash: " + (err?.message || JSON.stringify(err)));
+        setMessage("❌ Crash: " + err.message);
       }
     };
 
-    run();
+    fetchUser();
   }, []);
 
   return (
-    <div style={{ padding: 20 }}>
+    <div style={{ padding: "20px", fontFamily: "monospace" }}>
       <h2>User Home Debug</h2>
-      <p>{message}</p>
+      <pre>{message}</pre>
     </div>
   );
 }
