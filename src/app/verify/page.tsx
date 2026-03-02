@@ -7,7 +7,7 @@ export default function VerifyPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const tg = window?.Telegram?.WebApp;
+    const tg = (window as any)?.Telegram?.WebApp;
 
     if (!tg || !tg.initDataUnsafe?.user) {
       return;
