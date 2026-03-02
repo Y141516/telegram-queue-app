@@ -1,29 +1,17 @@
-import "./globals.css"
-import Script from "next/script"
-import { ThemeProvider } from "./components/providers/ThemeProvider"
-import { LanguageProvider } from "./components/providers/LanguageProvider"
-
 export const metadata = {
-  title: "Messenger App",
-  description: "Messenger Application",
-}
+  title: "Telegram Queue App",
+  description: "Mini App",
+};
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       <head>
-        <Script
-          src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
-        />
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
       </head>
-      <body className="bg-white dark:bg-neutral-950 text-black dark:text-white transition-colors duration-300">
-        <ThemeProvider>
-          <LanguageProvider>
-            {children}
-          </LanguageProvider>
-        </ThemeProvider>
+      <body>
+        {children}
       </body>
     </html>
-  )
+  );
 }
