@@ -1,34 +1,64 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
-export default function MessageForm() {
-  const [content, setContent] = useState<string>("");
+interface MessageFormProps {
+  leaderId: string;
+}
 
-  const sendMessage = async () => {
-    const telegramId = localStorage.getItem("telegram_id");
-    if (!telegramId) return;
+export default function MessageForm({ leaderId }: MessageFormProps) {
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    await supabase.from("messages").insert([
-      {
-        sender_telegram_id: telegramId,
-        content,
-      },
-    ]);
+  const handleSend = async () => {
+    if (!message.trim()) return;
 
-    setContent("");
+    setLoading(true);
+
+    try {
+      const telegramId = localStorage.getItem("telegram_id");
+
+      if (!telegramId) {
+        alert("User not logged in");
+        return;
+      }
+
+      const { error } = await supabase.from("messages").insert([
+        {
+          sender_telegram_id: telegramId,
+          leader_id: leaderId,
+          content: message,
+        },
+      ]);
+
+      if (error) throw error;
+
+      setMessage("");
+      alert("Message sent!");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send message");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex gap-2">
-      <input
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        className="border p-2 text-black"
+    <div className="p-4">
+      <textarea
+        className="w-full border p-2 rounded"
+        placeholder="Write your message..."
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
       />
-      <button onClick={sendMessage} className="bg-blue-500 px-4">
-        Send
+
+      <button
+        onClick={handleSend}
+        disabled={loading}
+        className="mt-2 bg-blue-500 text-white px-4 py-2 rounded"
+      >
+        {loading ? "Sending..." : "Send"}
       </button>
     </div>
   );
