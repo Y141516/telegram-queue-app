@@ -4,55 +4,45 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 
 export default function UserHome() {
-  const [profile, setProfile] = useState<any>(null);
-  const [error, setError] = useState("");
-  const [telegramIdDisplay, setTelegramIdDisplay] = useState("");
+  const [message, setMessage] = useState("Starting...");
 
   useEffect(() => {
     const telegramId = localStorage.getItem("telegram_id");
-    setTelegramIdDisplay(telegramId || "NULL");
 
     if (!telegramId) {
-      setError("No telegram_id in localStorage");
+      setMessage("❌ No telegram_id in localStorage");
       return;
     }
 
+    setMessage("Found telegram_id: " + telegramId);
+
     const fetchProfile = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("users")
-          .select("*")
-          .eq("telegram_id", telegramId)
-          .single();
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("telegram_id", telegramId)
+        .maybeSingle();
 
-        if (error) throw error;
-
-        setProfile(data);
-      } catch (err: any) {
-        setError(err.message);
+      if (error) {
+        setMessage("❌ Supabase error: " + error.message);
+        return;
       }
+
+      if (!data) {
+        setMessage("❌ No user found in database");
+        return;
+      }
+
+      setMessage("✅ User found: " + JSON.stringify(data));
     };
 
     fetchProfile();
   }, []);
 
-  if (error) {
-    return (
-      <div style={{ padding: "20px" }}>
-        <h2 style={{ color: "red" }}>ERROR: {error}</h2>
-        <p>
-          <strong>localStorage telegram_id:</strong> {telegramIdDisplay}
-        </p>
-      </div>
-    );
-  }
-
-  if (!profile) return <p>Loading profile...</p>;
-
   return (
-    <div style={{ padding: "20px" }}>
-      <h1>Welcome {profile.first_name}</h1>
-      <p>Telegram ID: {profile.telegram_id}</p>
+    <div style={{ padding: 20 }}>
+      <h2>User Home Debug</h2>
+      <p>{message}</p>
     </div>
   );
 }
