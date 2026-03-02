@@ -7,36 +7,41 @@ export default function UserHome() {
   const [message, setMessage] = useState("Starting...");
 
   useEffect(() => {
-    const telegramId = localStorage.getItem("telegram_id");
+    const run = async () => {
+      const telegramId = localStorage.getItem("telegram_id");
 
-    if (!telegramId) {
-      setMessage("❌ No telegram_id in localStorage");
-      return;
-    }
-
-    setMessage("Found telegram_id: " + telegramId);
-
-    const fetchProfile = async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("telegram_id", Number(telegramId))
-        .maybeSingle();
-
-      if (error) {
-        setMessage("❌ Supabase error: " + error.message);
+      if (!telegramId) {
+        setMessage("❌ No telegram_id in localStorage");
         return;
       }
 
-      if (!data) {
-        setMessage("❌ No user found in database");
-        return;
-      }
+      setMessage("Step 1: Found telegram_id = " + telegramId);
 
-      setMessage("✅ User found: " + JSON.stringify(data));
+      try {
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("telegram_id", Number(telegramId));
+
+        if (error) {
+          setMessage("❌ Supabase error: " + error.message);
+          return;
+        }
+
+        setMessage("Step 2: Raw response = " + JSON.stringify(data));
+
+        if (!data || data.length === 0) {
+          setMessage("❌ No matching user found in DB");
+          return;
+        }
+
+        setMessage("✅ SUCCESS: " + JSON.stringify(data[0]));
+      } catch (err) {
+        setMessage("❌ Crash: " + err.message);
+      }
     };
 
-    fetchProfile();
+    run();
   }, []);
 
   return (
