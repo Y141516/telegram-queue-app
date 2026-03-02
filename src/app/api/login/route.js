@@ -18,6 +18,7 @@ export async function POST(req) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
+    // Check if user already exists
     const { data: existingUser, error: selectError } = await supabase
       .from("users")
       .select("*")
@@ -32,6 +33,7 @@ export async function POST(req) {
       );
     }
 
+    // If user does NOT exist → create new one
     if (!existingUser) {
       const { data: newUser, error: insertError } = await supabase
         .from("users")
@@ -41,6 +43,7 @@ export async function POST(req) {
             username,
             first_name,
             last_name,
+            role: "User", // 🔥 Default role
           },
         ])
         .select()
@@ -54,10 +57,15 @@ export async function POST(req) {
         );
       }
 
-      return NextResponse.json(newUser);
+      return NextResponse.json({
+        role: newUser.role,
+      });
     }
 
-    return NextResponse.json(existingUser);
+    // If user exists → return their role
+    return NextResponse.json({
+      role: existingUser.role,
+    });
 
   } catch (err) {
     console.error("Server crash:", err);
