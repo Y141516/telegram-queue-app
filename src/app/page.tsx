@@ -2,111 +2,118 @@
 
 import { useEffect, useState } from "react";
 
-export default function Home() {
-  const [userId, setUserId] = useState<number | null>(null);
-  const [verified, setVerified] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string>("");
+export default function UserHome() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const telegram = (window as any).Telegram?.WebApp;
+    const init = async () => {
+      try {
+        const tg = (window as any).Telegram?.WebApp;
 
-    if (telegram) {
-      telegram.ready();
-      const id = telegram.initDataUnsafe?.user?.id;
-      if (id) {
-        setUserId(id);
-        verifyUser(id);
+        if (!tg || !tg.initDataUnsafe?.user) {
+          setError("Telegram user not found.");
+          setLoading(false);
+          return;
+        }
+
+        const telegramUser = tg.initDataUnsafe.user;
+
+        const res = await fetch("/api/get-user", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            telegram_id: telegramUser.id,
+            first_name: telegramUser.first_name,
+          }),
+        });
+
+        const text = await res.text();
+        console.log("API RAW RESPONSE:", text);
+
+        let result: any;
+        try {
+          result = JSON.parse(text);
+        } catch (parseError) {
+          throw new Error("Invalid JSON from API: " + text);
+        }
+
+        if (!res.ok) {
+          setError(result.error || "Access denied.");
+        } else {
+          setData(result);
+        }
+      } catch (err: any) {
+        console.error("FRONTEND ERROR:", err);
+        setError(err?.message || "Unexpected error");
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+
+    init();
   }, []);
 
-  const verifyUser = async (id: number) => {
-    const response = await fetch(
-      "https://fwwqmhtpgvmqxkyxtgdo.supabase.co/functions/v1/verfiy-user",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3d3FtaHRwZ3ZtcXhreXh0Z2RvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA5MjQ4NzYsImV4cCI6MjA4NjUwMDg3Nn0.2JVBatCl7RR24QMmHcrj3eYkptz6-8OQo7hEe6nnhnE"
-        },
-        body: JSON.stringify({ user_id: id })
-      }
+  if (loading) {
+    return <div style={{ padding: 20 }}>Verifying...</div>;
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: "red" }}>
+        ERROR: {error}
+      </div>
     );
+  }
 
-    const data = await response.json();
-    setVerified(data.verified);
-  };
-
-  const joinQueue = async () => {
-    if (!userId) return;
-
-    setLoading(true);
-    setMessage("");
-
-    const response = await fetch(
-      "https://fwwqmhtpgvmqxkyxtgdo.supabase.co/functions/v1/join-queue",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer YOUR_ANON_KEY"
-        },
-        body: JSON.stringify({ user_id: userId })
-      }
-    );
-
-    const data = await response.json();
-
-    if (data.success) {
-      setMessage("✅ You joined the queue!");
-    } else {
-      setMessage("❌ " + (data.error || "Something went wrong"));
-    }
-
-    setLoading(false);
-  };
+  if (!data) {
+    return <div style={{ padding: 20 }}>No data received.</div>;
+  }
 
   return (
-    <div
-      style={{
-        padding: 30,
-        fontFamily: "Arial",
-        textAlign: "center"
-      }}
-    >
-      <h1>Leader Message Queue</h1>
+    <div style={{ padding: 20 }}>
+      <h2>Welcome {data.user?.first_name}</h2>
+      <p>Group: {data.group?.name}</p>
 
-      {!userId && <p>Open inside Telegram...</p>}
+      <h3>Leaders</h3>
+      {data.leaders?.map((leader: any) => (
+        <div key={leader.id} style={{ marginBottom: 10 }}>
+          <strong>{leader.name}</strong>
+          <div>
+            Open: {leader.is_open ? "Yes" : "No"} | Queue:{" "}
+            {leader.current_count}/{leader.max_slots}
+          </div>
+        </div>
+      ))}
 
-      {verified === false && (
-        <h3 style={{ color: "red" }}>You are not a group member.</h3>
-      )}
+      <hr />
 
-      {verified && (
-        <>
-          <button
-            onClick={joinQueue}
-            disabled={loading}
-            style={{
-              padding: "12px 24px",
-              backgroundColor: "#0088cc",
-              color: "white",
-              border: "none",
-              borderRadius: 8,
-              fontSize: 16,
-              cursor: "pointer"
-            }}
-          >
-            {loading ? "Joining..." : "Join Queue"}
-          </button>
-
-          {message && (
-            <div style={{ marginTop: 20 }}>
-              <h3>{message}</h3>
-            </div>
-          )}
-        </>
+      {data.canSendMessage ? (
+        <button
+          style={{
+            padding: 10,
+            backgroundColor: "green",
+            color: "white",
+            border: "none",
+          }}
+        >
+          Send Message
+        </button>
+      ) : (
+        <button
+          disabled
+          style={{
+            padding: 10,
+            backgroundColor: "gray",
+            color: "white",
+            border: "none",
+          }}
+        >
+          Queue Closed
+        </button>
       )}
     </div>
   );
