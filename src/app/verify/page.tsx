@@ -1,35 +1,61 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function VerifyPage() {
-  const [info, setInfo] = useState("Checking...");
+  const router = useRouter();
 
   useEffect(() => {
     const tg = window?.Telegram?.WebApp;
 
-    if (!tg) {
-      setInfo("❌ Telegram object NOT found");
+    if (!tg || !tg.initDataUnsafe?.user) {
       return;
     }
 
-    if (!tg.initDataUnsafe) {
-      setInfo("❌ initDataUnsafe missing");
-      return;
-    }
+    const user = tg.initDataUnsafe.user;
 
-    if (!tg.initDataUnsafe.user) {
-      setInfo("❌ User NOT found inside initDataUnsafe");
-      return;
-    }
+    // Save telegram ID
+    localStorage.setItem("telegram_id", user.id.toString());
 
-    setInfo("✅ User found: " + JSON.stringify(tg.initDataUnsafe.user));
-  }, []);
+    const login = async () => {
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            id: user.id.toString(),
+            username: user.username,
+            first_name: user.first_name,
+            last_name: user.last_name,
+          }),
+        });
 
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Verify Debug</h2>
-      <p>{info}</p>
-    </div>
-  );
+        if (!res.ok) {
+          throw new Error("Login request failed");
+        }
+
+        const data = await res.json();
+
+        console.log("Login response:", data);
+
+        if (data.role === "User") {
+          router.replace("/User/home");
+        } else if (data.role === "Leader") {
+          router.replace("/Leader/home");
+        } else {
+          alert("Role not found");
+        }
+      } catch (err) {
+        alert("Login API failed");
+        console.error(err);
+      }
+    };
+
+    login();
+  }, [router]);
+
+  return <p>Verifying...</p>;
 }
