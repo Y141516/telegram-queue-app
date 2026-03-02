@@ -38,11 +38,14 @@ export default function VerifyPage() {
           }),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-          throw new Error("Login API failed");
+          console.error("Backend error:", data);
+          alert("Backend error: " + JSON.stringify(data));
+          return;
         }
 
-        const data = await response.json();
 
         console.log("User verified:", data);
 
