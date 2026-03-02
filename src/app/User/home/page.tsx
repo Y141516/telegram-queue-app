@@ -3,48 +3,107 @@
 import { useEffect, useState } from "react";
 
 export default function UserHome() {
-  const [message, setMessage] = useState("🔄 Verifying...");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const init = async () => {
       try {
-        // Get telegram id from localStorage
-        const telegramId = localStorage.getItem("telegram_id");
+        const tg = (window as any).Telegram?.WebApp;
 
-        if (!telegramId) {
-          setMessage("❌ No telegram_id found in localStorage");
+        if (!tg || !tg.initDataUnsafe?.user) {
+          setError("Telegram user not found.");
+          setLoading(false);
           return;
         }
 
-        setMessage("🔄 Fetching user from API...");
+        const telegramUser = tg.initDataUnsafe.user;
 
-        // Call backend API (NOT Supabase directly)
         const res = await fetch("/api/get-user", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ telegram_id: telegramId }),
+          body: JSON.stringify({
+            telegram_id: telegramUser.id,
+            first_name: telegramUser.first_name,
+          }),
         });
 
         const result = await res.json();
 
         if (!res.ok) {
-          setMessage("❌ " + (result.error || "Unknown error"));
-          return;
+          setError(result.error || "Access denied.");
+        } else {
+          setData(result);
         }
-
-        setMessage("✅ SUCCESS:\n" + JSON.stringify(result.user, null, 2));
-      } catch (err: any) {
-        setMessage("❌ Crash: " + err.message);
+      } catch (err) {
+        setError("Something went wrong.");
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUser();
+    init();
   }, []);
 
+  if (loading) {
+    return <div style={{ padding: 20 }}>Loading profile...</div>;
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: 20, color: "red" }}>
+        ERROR: {error}
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
   return (
-    <div style={{ padding: "20px", fontFamily: "monospace" }}>
-      <h2>User Home Debug</h2>
-      <pre>{message}</pre>
+    <div style={{ padding: 20 }}>
+      <h2>Welcome {data.user.first_name}</h2>
+      <p>Group: {data.group.name}</p>
+
+      <h3>Leaders</h3>
+      {data.leaders.map((leader: any) => (
+        <div key={leader.id} style={{ marginBottom: 10 }}>
+          <strong>{leader.name}</strong>
+          <div>
+            Open: {leader.is_open ? "Yes" : "No"} | 
+            Queue: {leader.current_count}/{leader.max_slots}
+          </div>
+        </div>
+      ))}
+
+      <hr />
+
+      {data.canSendMessage ? (
+        <button
+          style={{
+            padding: 10,
+            backgroundColor: "green",
+            color: "white",
+            border: "none",
+          }}
+        >
+          Send Message
+        </button>
+      ) : (
+        <button
+          disabled
+          style={{
+            padding: 10,
+            backgroundColor: "gray",
+            color: "white",
+            border: "none",
+          }}
+        >
+          Queue Closed
+        </button>
+      )}
     </div>
   );
 }
