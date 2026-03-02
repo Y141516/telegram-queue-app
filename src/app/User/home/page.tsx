@@ -18,17 +18,26 @@ export default function UserHome() {
       setMessage("Step 1: Found telegram_id = " + telegramId);
 
       try {
-        const { data, error } = await supabase
+        setMessage("Step 2: Querying Supabase...");
+
+        // 🔥 5 second timeout protection
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Request timeout")), 5000)
+        );
+
+        const query = supabase
           .from("users")
           .select("*")
           .eq("telegram_id", Number(telegramId));
+
+        const result = await Promise.race([query, timeout]) as any;
+
+        const { data, error } = result;
 
         if (error) {
           setMessage("❌ Supabase error: " + error.message);
           return;
         }
-
-        setMessage("Step 2: Raw response = " + JSON.stringify(data));
 
         if (!data || data.length === 0) {
           setMessage("❌ No matching user found in DB");
