@@ -10,25 +10,46 @@ type UserProfile = {
 
 export default function UserHome() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const telegramId = localStorage.getItem("telegram_id");
-    if (!telegramId) return;
+
+    console.log("Telegram ID:", telegramId);
+
+    if (!telegramId) {
+      setError("No telegram_id in localStorage");
+      return;
+    }
 
     const fetchProfile = async () => {
       const { data, error } = await supabase
         .from("users")
         .select("*")
         .eq("telegram_id", telegramId)
-        .single();
+        .maybeSingle();
 
-      if (!error && data) {
-        setProfile(data as UserProfile);
+      console.log("Supabase response:", data, error);
+
+      if (error) {
+        setError(error.message);
+        return;
       }
+
+      if (!data) {
+        setError("No user found in database");
+        return;
+      }
+
+      setProfile(data as UserProfile);
     };
 
     fetchProfile();
   }, []);
+
+  if (error) {
+    return <div className="text-red-500 p-4">Error: {error}</div>;
+  }
 
   if (!profile) {
     return <div className="text-white p-4">Loading...</div>;
