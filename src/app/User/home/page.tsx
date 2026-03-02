@@ -1,72 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-
-type UserProfile = {
-  telegram_id: string;
-  first_name: string;
-};
+import { supabase } from "../../../lib/supabaseClient";
 
 export default function UserHome() {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [telegramIdDisplay, setTelegramIdDisplay] = useState("");
 
   useEffect(() => {
-    try {
-      const telegramId = localStorage.getItem("telegram_id");
+    const telegramId = localStorage.getItem("telegram_id");
+    setTelegramIdDisplay(telegramId || "NULL");
 
-      if (!telegramId) {
-        setError("No telegram ID found");
-        return;
-      }
+    if (!telegramId) {
+      setError("No telegram_id in localStorage");
+      return;
+    }
 
-      const fetchProfile = async () => {
+    const fetchProfile = async () => {
+      try {
         const { data, error } = await supabase
           .from("users")
           .select("*")
           .eq("telegram_id", telegramId)
-          .maybeSingle();
+          .single();
 
-        if (error) {
-          setError(error.message);
-          return;
-        }
+        if (error) throw error;
 
-        if (!data) {
-          setError("User not found in database");
-          return;
-        }
+        setProfile(data);
+      } catch (err: any) {
+        setError(err.message);
+      }
+    };
 
-        setProfile(data as UserProfile);
-      };
-
-      fetchProfile();
-    } catch (err) {
-      console.error("Crash:", err);
-      setError("Page crashed");
-    }
+    fetchProfile();
   }, []);
 
   if (error) {
     return (
-      <div style={{ padding: "20px", color: "red" }}>
-        ERROR: {error}
+      <div style={{ padding: "20px" }}>
+        <h2 style={{ color: "red" }}>ERROR: {error}</h2>
+        <p>
+          <strong>localStorage telegram_id:</strong> {telegramIdDisplay}
+        </p>
       </div>
     );
   }
 
-  if (!profile) {
-    return (
-      <div style={{ padding: "20px" }}>
-        Loading profile...
-      </div>
-    );
-  }
+  if (!profile) return <p>Loading profile...</p>;
 
   return (
     <div style={{ padding: "20px" }}>
       <h1>Welcome {profile.first_name}</h1>
+      <p>Telegram ID: {profile.telegram_id}</p>
     </div>
   );
 }
