@@ -1,109 +1,63 @@
-"use client";
+// src/app/user/[id]/page.tsx
+'use client';
+import { useEffect, useState } from 'react';
 
-import { useEffect, useState } from "react";
+interface UserData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  username: string;
+  group_name: string;
+  queue_open: boolean;
+  messages_count: number;
+  max_messages: number;
+}
 
-export default function UserHome() {
+export default function UserHome({ params }: { params: { id: string } }) {
+  const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [data, setData] = useState<any>(null);
 
   useEffect(() => {
-    const init = async () => {
-      try {
-        const tg = (window as any).Telegram?.WebApp;
-
-        if (!tg || !tg.initDataUnsafe?.user) {
-          setError("Telegram user not found.");
+    fetch(/api/get-user/${params.id})
+      .then(res => res.json())
+      .then(data => {
+        if (!data || data.error) {
+          alert('Error fetching user data: ' + (data?.error || 'Unknown'));
           setLoading(false);
           return;
         }
-
-        const telegramUser = tg.initDataUnsafe.user;
-
-        const res = await fetch("/api/get-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            telegram_id: telegramUser.id,
-            first_name: telegramUser.first_name,
-          }),
-        });
-
-        const result = await res.json();
-
-        if (!res.ok) {
-          setError(result.error || "Access denied.");
-        } else {
-          setData(result);
-        }
-      } catch (err) {
-        setError("Something went wrong.");
-      } finally {
+        setUser(data);
         setLoading(false);
-      }
-    };
+      })
+      .catch(err => {
+        alert('Crash: ' + err);
+        setLoading(false);
+      });
+  }, [params.id]);
 
-    init();
-  }, []);
-
-  if (loading) {
-    return <div style={{ padding: 20 }}>Loading profile...</div>;
-  }
-
-  if (error) {
-    return (
-      <div style={{ padding: 20, color: "red" }}>
-        ERROR: {error}
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
+  if (loading) return <div className="text-white p-4">Loading profile...</div>;
+  if (!user) return <div className="text-white p-4">User not found</div>;
 
   return (
-    <div style={{ padding: 20 }}>
-      <h2>Welcome {data.user.first_name}</h2>
-      <p>Group: {data.group.name}</p>
+    <div className="min-h-screen bg-gray-900 text-white p-4">
+      <div className="flex items-center mb-4">
+        <button className="mr-4" onClick={() => history.back()}>&larr;</button>
+        <h1 className="text-xl font-bold">{user.first_name}</h1>
+        <button className="ml-auto">?</button>
+      </div>
 
-      <h3>Leaders</h3>
-      {data.leaders.map((leader: any) => (
-        <div key={leader.id} style={{ marginBottom: 10 }}>
-          <strong>{leader.name}</strong>
-          <div>
-            Open: {leader.is_open ? "Yes" : "No"} | 
-            Queue: {leader.current_count}/{leader.max_slots}
-          </div>
-        </div>
-      ))}
+      <div className="bg-gray-800 rounded p-4 mb-4">
+        <p>Group: {user.group_name}</p>
+        <p>Queue Status: {user.queue_open ? 'Open' : 'Closed'}</p>
+        <p>Messages: {user.messages_count} / {user.max_messages}</p>
+      </div>
 
-      <hr />
-
-      {data.canSendMessage ? (
-        <button
-          style={{
-            padding: 10,
-            backgroundColor: "green",
-            color: "white",
-            border: "none",
-          }}
-        >
-          Send Message
-        </button>
-      ) : (
-        <button
-          disabled
-          style={{
-            padding: 10,
-            backgroundColor: "gray",
-            color: "white",
-            border: "none",
-          }}
-        >
-          Queue Closed
-        </button>
-      )}
+      <button
+        disabled={!user.queue_open || user.messages_count >= user.max_messages}
+        className={px-4 py-2 rounded ${user.queue_open && user.messages_count < user.max_messages ? 'bg-blue-500' : 'bg-gray-600 cursor-not-allowed'}}
+      >
+        Send Message
+      </button>
     </div>
   );
 }
