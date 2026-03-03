@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabase } from "@/lib/supabaseClient";
 import { useRouter, useParams } from "next/navigation";
 import LeaderNavbar from "@/components/navigation/LeaderNavbar";
 
@@ -23,6 +23,7 @@ export default function MessageDetailsPage() {
   }, []);
 
   const fetchMessage = async () => {
+    const supabase = getSupabase();
     const { data } = await supabase
       .from("messages")
       .select("*")
@@ -35,6 +36,7 @@ export default function MessageDetailsPage() {
   const handleResolve = async () => {
     if (!message) return;
 
+    const supabase = getSupabase();
     const { error } = await supabase
       .from("messages")
       .update({

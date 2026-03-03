@@ -1,8 +1,9 @@
-import { supabase } from './supabaseClient'
+import { getSupabase } from './supabaseClient'
 
 export const getLeaderStats = async (leaderId: string) => {
   const today = new Date().toISOString().split('T')[0]
 
+  const supabase = getSupabase();
   const { data: pending } = await supabase
     .from('messages')
     .select('*', { count: 'exact', head: true })
@@ -34,6 +35,7 @@ export const toggleQueue = async (
   leaderId: string,
   currentState: boolean
 ) => {
+  const supabase = getSupabase();
   await supabase
     .from('leaders')
     .update({ queue_open: !currentState })

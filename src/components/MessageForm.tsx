@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "../lib/supabaseClient";
+import { getSupabase } from "../lib/supabaseClient";
 
 interface MessageFormProps {
   leaderId: string;
@@ -24,6 +24,7 @@ export default function MessageForm({ leaderId }: MessageFormProps) {
         return;
       }
 
+      const supabase = getSupabase();
       const { error } = await supabase.from("messages").insert([
         {
           sender_telegram_id: telegramId,

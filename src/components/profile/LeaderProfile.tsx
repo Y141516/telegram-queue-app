@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabase } from "@/lib/supabaseClient";
 
 type LeaderProfileType = {
   first_name: string;
@@ -15,6 +15,7 @@ export default function LeaderProfile() {
     if (!telegramId) return;
 
     const fetchProfile = async () => {
+      const supabase = getSupabase();
       const { data } = await supabase
         .from("users")
         .select("*")

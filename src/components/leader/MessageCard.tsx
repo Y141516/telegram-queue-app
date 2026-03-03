@@ -1,6 +1,6 @@
 'use client'
 
-import { supabase } from '@/lib/supabaseClient'
+import { getSupabase } from '@/lib/supabaseClient'
 
 interface Props {
   message: {
@@ -14,6 +14,7 @@ interface Props {
 
 export default function MessageCard({ message }: Props) {
   const resolveMessage = async () => {
+    const supabase = getSupabase();
     await supabase
       .from('messages')
       .update({

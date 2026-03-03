@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabase } from "@/lib/supabaseClient";
 
 type Message = {
   id: number;
@@ -17,6 +17,7 @@ export default function LeaderMessagePage() {
     if (!telegramId) return;
 
     const fetchMessages = async () => {
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from("messages")
         .select("*")
