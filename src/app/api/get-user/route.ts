@@ -1,29 +1,21 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
-/*
-  SAFE ENV LOADING
-  This prevents the vague "supabaseKey is required" error.
-*/
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl) {
-  throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable");
-}
-
-if (!serviceKey) {
-  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
-}
-
-// Create Supabase client ONCE (server-side only)
-const supabase = createClient(supabaseUrl, serviceKey);
-
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+    if (!supabaseUrl || !serviceKey) {
+      return NextResponse.json(
+        { error: "Server configuration error." },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, serviceKey);
+
+    const body = await req.json();
     const telegramId = body?.telegram_id;
 
     if (!telegramId) {
@@ -33,7 +25,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 1️⃣ Check if user already exists
+    // Check if user exists
     const { data: existingUser, error: fetchError } = await supabase
       .from("users")
       .select("*")
@@ -51,7 +43,7 @@ export async function POST(req: Request) {
       return NextResponse.json(existingUser);
     }
 
-    // 2️⃣ Create user if not exists
+    // Create user
     const { data: newUser, error: insertError } = await supabase
       .from("users")
       .insert([
