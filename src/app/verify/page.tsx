@@ -1,61 +1,89 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 export default function VerifyPage() {
   const router = useRouter();
 
+  const [loadingText, setLoadingText] = useState("Verifying...");
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
-    const tg = (window as any)?.Telegram?.WebApp;
-
-    if (!tg || !tg.initDataUnsafe?.user) {
-      return;
-    }
-
-    const user = tg.initDataUnsafe.user;
-
-    // Save telegram ID
-    localStorage.setItem("telegram_id", user.id.toString());
-
-    const login = async () => {
+    const init = async () => {
       try {
-        const res = await fetch("/api/login", {
+        setLoadingText("Checking Telegram...");
+
+        if (typeof window === "undefined") {
+          throw new Error("Window not available");
+        }
+
+        const tg = (window as any).Telegram?.WebApp;
+
+        if (!tg) {
+          throw new Error("Open this mini app inside Telegram.");
+        }
+
+        tg.ready();
+
+        const user = tg.initDataUnsafe?.user;
+
+        if (!user || !user.id) {
+          throw new Error("Telegram user data not found.");
+        }
+
+        setLoadingText("Loading profile...");
+
+        const response = await fetch("/api/get-user", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            id: user.id.toString(),
-            username: user.username,
-            first_name: user.first_name,
-            last_name: user.last_name,
+            telegram_id: user.id,
+            username: user.username ?? null,
+            first_name: user.first_name ?? null,
+            last_name: user.last_name ?? null,
           }),
         });
 
-        if (!res.ok) {
-          throw new Error("Login request failed");
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to load profile.");
         }
 
-        const data = await res.json();
+        setLoadingText("Success!");
 
-        console.log("Login response:", data);
-
-        if (data.role === "User") {
-          router.replace("/User/home");
-        } else if (data.role === "Leader") {
-          router.replace("/Leader/home");
-        } else {
-          alert("Role not found");
-        }
-      } catch (err) {
-        alert("Login API failed");
-        console.error(err);
+        // Redirect after success
+        setTimeout(() => {
+          router.push("/");
+        }, 500);
+      } catch (err: any) {
+        console.error("VERIFY ERROR:", err);
+        setError(err.message || "Something went wrong.");
       }
     };
 
-    login();
+    init();
   }, [router]);
 
-  return <p>Verifying...</p>;
+  if (error) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-black text-white">
+        <div className="text-center">
+          <h1 className="text-xl font-bold mb-4">Error</h1>
+          <p className="text-red-400">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-black text-white">
+      <div className="text-center">
+        <h1 className="text-xl font-bold mb-4">{loadingText}</h1>
+      </div>
+    </div>
+  );
 }
