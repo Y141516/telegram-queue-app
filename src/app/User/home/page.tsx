@@ -1,109 +1,39 @@
-"use client";
+import { NextResponse } from "next/server"
+import { createClient } from "@supabase/supabase-js"
 
-import { useEffect, useState } from "react";
+const supabase = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-export default function UserHome() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [data, setData] = useState<any>(null);
+export async function POST(req: Request) {
+  try {
+    const { telegram_id, first_name } = await req.json()
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const tg = (window as any).Telegram?.WebApp;
+    if (!telegram_id) {
+      return NextResponse.json({ error: "No telegram id" }, { status: 400 })
+    }
 
-        if (!tg || !tg.initDataUnsafe?.user) {
-          setError("Telegram user not found.");
-          setLoading(false);
-          return;
-        }
+    const { data: user } = await supabase
+      .from("users")
+      .select("*")
+      .eq("telegram_id", telegram_id)
+      .single()
 
-        const telegramUser = tg.initDataUnsafe.user;
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 403 })
+    }
 
-        const res = await fetch("/api/get-user", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            telegram_id: telegramUser.id,
-            first_name: telegramUser.first_name,
-          }),
-        });
-
-        const result = await res.json();
-
-        if (!res.ok) {
-          setError(result.error || "Access denied.");
-        } else {
-          setData(result);
-        }
-      } catch (err) {
-        setError("Something went wrong.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    init();
-  }, []);
-
-  if (loading) {
-    return <div style={{ padding: 20 }}>Loading profile...</div>;
+    return NextResponse.json({
+      user,
+      group: { name: "Demo Group" },
+      leaders: [],
+      canSendMessage: true,
+    })
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message },
+      { status: 500 }
+    )
   }
-
-  if (error) {
-    return (
-      <div style={{ padding: 20, color: "red" }}>
-        ERROR: {error}
-      </div>
-    );
-  }
-
-  if (!data) {
-    return null;
-  }
-
-  return (
-    <div style={{ padding: 20 }}>
-      <h2>Welcome {data.user.first_name}</h2>
-      <p>Group: {data.group.name}</p>
-
-      <h3>Leaders</h3>
-      {data.leaders.map((leader: any) => (
-        <div key={leader.id} style={{ marginBottom: 10 }}>
-          <strong>{leader.name}</strong>
-          <div>
-            Open: {leader.is_open ? "Yes" : "No"} | 
-            Queue: {leader.current_count}/{leader.max_slots}
-          </div>
-        </div>
-      ))}
-
-      <hr />
-
-      {data.canSendMessage ? (
-        <button
-          style={{
-            padding: 10,
-            backgroundColor: "green",
-            color: "white",
-            border: "none",
-          }}
-        >
-          Send Message
-        </button>
-      ) : (
-        <button
-          disabled
-          style={{
-            padding: 10,
-            backgroundColor: "gray",
-            color: "white",
-            border: "none",
-          }}
-        >
-          Queue Closed
-        </button>
-      )}
-    </div>
-  );
 }
